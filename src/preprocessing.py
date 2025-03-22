@@ -16,7 +16,6 @@ def load_lightcurve(file_path):
         print("⚠️ Advertencia: No se encontró la columna 'flux'. Usando 'pdcsap_flux'.")
         df['brillo'] = df['pdcsap_flux'] / np.median(df['pdcsap_flux'])  # Normalizar si es necesario
 
-    print(df[['timecorr', 'brillo']].head())  # Verificar los primeros valores
     return df
 
 def plot_lightcurve(df, title="Curva de Luz", ylim=None):
