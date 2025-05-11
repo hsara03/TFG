@@ -56,3 +56,90 @@ for file in files:
     plot_all_stages(df, df_filtered, ylim=ylim)
 
 print("✅ Todas las curvas de luz han sido procesadas correctamente.")
+
+# 🔎 PASO EXTRA: Análisis PCA
+from src.pca_analysis import load_processed_data, standardize_data, apply_pca, plot_pca_results, save_pca_results
+
+print("🚀 Iniciando análisis PCA sobre los datos procesados...")
+
+data_matrix = load_processed_data(processed_data_path)
+standardized_data = standardize_data(data_matrix)
+principal_components, explained_variance = apply_pca(standardized_data)
+plot_pca_results(principal_components, explained_variance)
+save_pca_results(principal_components, output_path=os.path.join(processed_data_path, 'pca_results.csv'))
+print("✅ Análisis PCA completado y resultados guardados.")
+
+import pandas as pd
+import plotly.express as px
+import os
+
+# Crear DataFrame con los resultados y nombres de estrellas
+df_pca = pd.DataFrame(principal_components, columns=['PC1', 'PC2'])
+df_pca['Star'] = [
+    "Kepler-10",
+    "Kepler-22",
+    "Kepler-62",
+    "Kepler-186",
+    "Kepler-452",
+    "KIC 12557548",
+    "KIC 3542116",
+    "KIC 8462852"
+]
+
+# Crear el gráfico interactivo
+fig = px.scatter(
+    df_pca,
+    x='PC1',
+    y='PC2',
+    text='Star',
+    title='PCA Interactivo de Curvas de Luz de Estrellas',
+    labels={'PC1': 'Componente Principal 1', 'PC2': 'Componente Principal 2'},
+    template='plotly_white'
+)
+
+# Añadir los nombres de las estrellas como texto en el hover (tooltip)
+fig.update_traces(textposition='top center', marker=dict(size=10, color='blue'))
+
+# Mostrar el gráfico
+fig.show()
+
+# Guardar el gráfico como archivo HTML interactivo
+fig.write_html(os.path.join(processed_data_path, 'pca_star_plot_interactive.html'))
+
+print("✅ Gráfico PCA interactivo generado correctamente.")
+from sklearn.ensemble import IsolationForest
+import numpy as np
+import plotly.express as px
+
+print("🚀 Iniciando análisis de anomalías con Isolation Forest...")
+
+# Creamos el modelo Isolation Forest
+iso_forest = IsolationForest(contamination='auto', random_state=42)
+anomaly_labels = iso_forest.fit_predict(df_pca[['PC1', 'PC2']])
+anomaly_scores = iso_forest.decision_function(df_pca[['PC1', 'PC2']])
+
+# Añadimos los resultados al DataFrame
+df_pca['Anomaly'] = anomaly_labels
+df_pca['Score'] = anomaly_scores
+
+# Visualizamos resultados con plotly
+fig = px.scatter(
+    df_pca,
+    x='PC1',
+    y='PC2',
+    color='Anomaly',
+    hover_data=['Star', 'Score'],
+    title='Detección de Anomalías con Isolation Forest',
+    labels={'PC1': 'Componente Principal 1', 'PC2': 'Componente Principal 2', 'Anomaly': 'Anomalía'},
+    template='plotly_white'
+)
+
+fig.update_traces(marker=dict(size=12))
+fig.show()
+
+# Guardamos resultados
+df_pca.to_csv(os.path.join(processed_data_path, 'pca_isolation_forest_results.csv'), index=False)
+fig.write_html(os.path.join(processed_data_path, 'isolation_forest_interactive.html'))
+
+print("✅ Análisis de anomalías completado y resultados guardados.")
+
