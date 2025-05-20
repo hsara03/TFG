@@ -143,3 +143,43 @@ fig.write_html(os.path.join(processed_data_path, 'isolation_forest_interactive.h
 
 print("✅ Análisis de anomalías completado y resultados guardados.")
 
+from src.pca_analysis import load_processed_data, standardize_data
+from src.autoenconder_model import (
+    build_autoencoder,
+    train_autoencoder,
+    compute_reconstruction_errors,
+    plot_reconstruction_error,
+    detect_anomalies
+)
+
+import os
+import numpy as np
+import pandas as pd
+
+# 1. Cargar y normalizar los datos
+DATA_DIR = 'notebooks/data/processed/'
+data_matrix = load_processed_data(DATA_DIR)
+standardized_data = standardize_data(data_matrix)
+
+# 2. Crear y entrenar el autoencoder
+autoencoder = build_autoencoder(input_dim=standardized_data.shape[1])
+history = train_autoencoder(autoencoder, standardized_data, epochs=100, batch_size=8)
+
+# 3. Calcular errores de reconstrucción
+errors = compute_reconstruction_errors(autoencoder, standardized_data)
+
+# 4. Visualizar los errores
+plot_reconstruction_error(errors)
+
+# 5. Elegir un umbral y detectar anomalías
+threshold = np.percentile(errors, 90)  # por ejemplo: top 10% como anomalías
+anomaly_labels = detect_anomalies(errors, threshold)
+
+# 6. Guardar resultados
+df_results = pd.DataFrame({
+    'ErrorReconstruccion': errors,
+    'Anomalia': anomaly_labels
+})
+df_results.to_csv(os.path.join(DATA_DIR, 'autoencoder_anomaly_results.csv'), index=False)
+print("✅ Resultados guardados como 'autoencoder_anomaly_results.csv'")
+

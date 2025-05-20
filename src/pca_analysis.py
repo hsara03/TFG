@@ -13,21 +13,33 @@ def load_processed_data(data_dir, num_points=300):
     all_curves = []
 
     for filename in os.listdir(data_dir):
-        if filename.endswith('.csv'):
-            df = pd.read_csv(os.path.join(data_dir, filename))
-            flux_column = 'brillo' if 'brillo' in df.columns else 'flux'
+        # Solo archivos .csv que empiecen por "curva_luz_"
+        if filename.endswith('.csv') and filename.startswith('curva_luz_'):
+            filepath = os.path.join(data_dir, filename)
+            df = pd.read_csv(filepath)
 
-            # Evitamos archivos vacíos o con datos insuficientes
-            if df.shape[0] < 2:
+            # Comprobamos si tiene la columna "brillo"
+            if 'brillo' not in df.columns:
+                print(f"⚠️ {filename} no tiene columna 'brillo'. Saltando...")
                 continue
 
+            if df.shape[0] < 2:
+                print(f"⚠️ {filename} está vacío o tiene muy pocos datos. Saltando...")
+                continue
+
+            # Interpolación para igualar longitudes
             original_x = np.linspace(0, 1, num=len(df))
             target_x = np.linspace(0, 1, num=num_points)
+            interpolated_flux = np.interp(target_x, original_x, df['brillo'].values)
 
-            interpolated_flux = np.interp(target_x, original_x, df[flux_column].values)
             all_curves.append(interpolated_flux)
+            print(f"✅ Cargada curva: {filename}")
+
+        else:
+            print(f"⏭️ Ignorada: {filename} (no es curva de luz válida)")
 
     return np.array(all_curves)
+
 
 # Paso 2: Estandarizar datos (normalización por característica)
 def standardize_data(data_matrix):
